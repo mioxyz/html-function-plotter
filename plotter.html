@@ -1,0 +1,159 @@
+<!DOCTYPE html><html>
+<meta charset="UTF-8">
+<head>
+   <title>Plotter</title>
+</head>
+<body style="background-color: black; width: 100%; text-align:center;">
+   <canvas id="canvas" width="1024" height="768" />
+</body>
+<script>
+
+const canvas = document.getElementById('canvas');
+const ctx    = canvas.getContext('2d');
+
+alert(`Controls:
+[i,j,k,l] ~> arrow-keys,
+[u,h] ~> zoom in & out,
+[y,g] ~> shorten & elongate hair,
+[t,f] ~> increase & decrease hair density,
+left-click & drag ~> pan around
+`);
+
+const drawPoint = function(p) {
+   ctx.beginPath();
+   ctx.moveTo(p.x, p.y);
+   ctx.lineTo(p.x-1, p.y+1);
+   ctx.strokeStyle = '#ff0000';
+   ctx.stroke();
+}
+
+const f = function(x,y) {
+   return (
+         (3*x*x + Math.pow(y,5) + 3)
+                     /
+         (24*y*y - 5*Math.pow(x,3) * Math.pow(y,4))
+      );
+}
+
+// these are all global variables.
+const winWidth  = 920;
+const winHeight = 690;
+let offset = {
+   x: -300,
+   y: -340
+};
+let scale = 0.007;
+let fieldLineLength = 17;
+let relativeFieldLineLength = 2.0;
+let checkMax = 180;
+
+const plotFieldLine = function(p, theta) 
+{
+   ctx.beginPath();
+   ctx.moveTo(p.x, p.y);
+   ctx.lineTo(
+      p.x + relativeFieldLineLength * fieldLineLength * Math.sin(theta)
+    , p.y + relativeFieldLineLength * fieldLineLength * Math.cos(theta)
+   );
+   
+   let dump = 255*((theta/Math.PI+0.5));
+   ctx.strokeStyle = `rgb(${dump},${255-dump},${dump/3})`;
+   ctx.stroke();          // Render the path
+}
+
+const m = function(p) {
+   return Math.atan(f(p.x,p.y));
+}
+
+const clearScreen = function() {
+   ctx.clearRect(0, 0, 1000, 1200);
+}
+
+// debounce the plotter. It isn't very pleasant when the UI freezes once too
+// many plot() calls stack up.
+let locked = false;
+
+
+const plotFunction = function() {
+   if(locked) return;
+   locked = true;
+   clearScreen();
+   let point = {x:0,y:0};
+   while(point.y < winHeight) {
+      while(point.x < winWidth) {
+         let translatedAndScaled = { 
+            x: (point.x+offset.x)*scale
+          , y: (point.y+offset.y)*scale
+         }
+         plotFieldLine( point, m(translatedAndScaled));
+         point.x+=fieldLineLength;
+      }
+      point.x=0;
+      point.y+=fieldLineLength;
+   }
+   setTimeout(() => { locked = false }, (fieldLineLength < 10) ? 500 : 60);
+}
+
+plotFunction();
+
+let prevx = 0;
+let prevy = 0;
+
+var div = document.getElementById("canvas");
+
+document.onkeydown = (evt) => {
+   const fact = 1 / (scale*10);
+   switch(evt.key) {
+      case 'u': scale *= 1.02; break;
+      case 'h': scale *= 0.98; break;
+      case 'i': offset.y += fact; break;
+      case 'k': offset.y -= fact; break;
+      case 'j': offset.x += fact; break;
+      case 'l': offset.x -= fact; break;
+      case 'y':
+         if( relativeFieldLineLength > 0.2)
+         {
+            relativeFieldLineLength -= 0.1;
+         }else{
+            relativeFieldLineLength = 0.2;
+         }
+         break;
+      case 'g':
+         if( relativeFieldLineLength < 2.0)
+         {
+            relativeFieldLineLength += 0.1;
+         }else{
+            relativeFieldLineLength = 2.0;
+         }
+         break;
+         case 't':
+         if(fieldLineLength > 5) {
+            fieldLineLength -= 1;
+         }else{
+            fieldLineLength = 5;
+         }
+         break;
+         case 'f':
+         if(fieldLineLength < 40) {
+            fieldLineLength += 1;
+         }else{
+            fieldLineLength = 40;
+         }
+         break;
+   }
+
+   plotFunction();
+};
+
+div.onmousedown = function(evt) {
+   prevx = evt.clientX;
+   prevy = evt.clientY;
+}
+
+document.onmouseup = function (evt) {
+   offset.x += (prevx - evt.clientX);
+   offset.y += (prevy - evt.clientY);
+   plotFunction();
+}
+
+</script></html>
