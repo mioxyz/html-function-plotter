@@ -1,4 +1,4 @@
-# Dumb Plotter
+# Html Function Plotter
 for drawing and playing around with graphs. Currently only includes one for
 drawing those hair-vector line fields. Each graph plotter is a single
 html file with the necessary vanilla javascript baked right into it, that is
